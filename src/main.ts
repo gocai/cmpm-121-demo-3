@@ -1,6 +1,6 @@
 import "leaflet/dist/leaflet.css";
 import "./style.css";
-import leaflet from "leaflet";
+import leaflet, { latLng } from "leaflet";
 import luck from "./luck";
 import "./leafletWorkaround";
 
@@ -10,7 +10,7 @@ const MERRILL_CLASSROOM = leaflet.latLng({
     lng: - 122.0533
 });
 
-const GAMEPLAY_ZOOM_LEVEL = 19;
+const GAMEPLAY_ZOOM_LEVEL = 18;
 const TILE_DEGREES = 1e-4;
 const NEIGHBORHOOD_SIZE = 8;
 const PIT_SPAWN_PROBABILITY = 0.1;
@@ -32,7 +32,7 @@ leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 
 const playerMarker = leaflet.marker(MERRILL_CLASSROOM);
-playerMarker.bindTooltip("That's you!");
+playerMarker.bindTooltip(`That's you! Your location is ${MERRILL_CLASSROOM.lat},${MERRILL_CLASSROOM.lng}`);
 playerMarker.addTo(map);
 
 let points = 0;
@@ -55,14 +55,25 @@ function makePit(i: number, j: number) {
         let value = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
         const container = document.createElement("div");
         container.innerHTML = `
-                <div>There is a pit here at "${i},${j}". It has value <span id="value">${value}</span>.</div>
-                <button id="poke">poke</button>`;
+                <div>There is a pit here at "${i},${j}". It has this many coins: <span id="value">${value}</span>.</div>
+                <button id="poke">Collect Coin</button><button id="unpoke">Deposit Coin</button>`;
         const poke = container.querySelector<HTMLButtonElement>("#poke")!;
         poke.addEventListener("click", () => {
-            value--;
+            if (value > 0) {
+                value--;
+                points++;
+            }
             container.querySelector<HTMLSpanElement>("#value")!.innerHTML = value.toString();
-            points++;
-            statusPanel.innerHTML = `${points} points accumulated`;
+            statusPanel.innerHTML = `${points} coins collected!`;
+        });
+        const unpoke = container.querySelector<HTMLButtonElement>("#unpoke")!;
+        unpoke.addEventListener("click", () => {
+            if (points > 0) {
+                value++;
+                points--;
+            }
+            container.querySelector<HTMLSpanElement>("#value")!.innerHTML = value.toString();
+            statusPanel.innerHTML = `${points} coins collected!`;
         });
         return container;
     });
@@ -76,3 +87,10 @@ for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
         }
     }
 }
+//add a tooltip so when you click on the player, the player's latitude longitude is displayed
+//each pit = 1 cell
+//"nearby cells" are cells within an 8 cell radius of the player
+//10 percent of grid cells "nearby" the player will be pits
+//player is stationary for now
+//pick up coins AND deposit, right now theres on'y a pickup function
+//make sure you can't poke pits beyond 0, or deposit beyond 0
