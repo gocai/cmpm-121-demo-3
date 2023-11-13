@@ -3,7 +3,13 @@ import "./style.css";
 import leaflet, { latLng } from "leaflet";
 import luck from "./luck";
 import "./leafletWorkaround";
+import { Board } from "./board.ts";
+import { Cell } from "./board.ts";
 
+interface Coin{
+    origin: Cell;
+    serialNumber: number;
+}
 
 const MERRILL_CLASSROOM = leaflet.latLng({
     lat: 36.9995,
@@ -34,6 +40,16 @@ leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
 const playerMarker = leaflet.marker(MERRILL_CLASSROOM);
 playerMarker.bindTooltip(`That's you! Your location is ${MERRILL_CLASSROOM.lat},${MERRILL_CLASSROOM.lng}`);
 playerMarker.addTo(map);
+
+const sensorButton = document.querySelector("#sensor")!;
+sensorButton.addEventListener("click", () => {
+  navigator.geolocation.watchPosition((position) => {
+    playerMarker.setLatLng(
+      leaflet.latLng(position.coords.latitude, position.coords.longitude)
+    );
+    map.setView(playerMarker.getLatLng());
+  });
+});
 
 let points = 0;
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
