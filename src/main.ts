@@ -11,6 +11,7 @@ interface Coin{
     serialNumber: number;
 }
 
+
 const MERRILL_CLASSROOM = leaflet.latLng({
     lat: 36.9995,
     lng: - 122.0533
@@ -21,6 +22,8 @@ const TILE_DEGREES = 1e-4;
 const NEIGHBORHOOD_SIZE = 8;
 const PIT_SPAWN_PROBABILITY = 0.1;
 
+const gameBoard = new Board(TILE_DEGREES, NEIGHBORHOOD_SIZE);
+
 const mapContainer = document.querySelector<HTMLElement>("#map")!;
 
 const map = leaflet.map(mapContainer, {
@@ -29,7 +32,7 @@ const map = leaflet.map(mapContainer, {
     minZoom: GAMEPLAY_ZOOM_LEVEL,
     maxZoom: GAMEPLAY_ZOOM_LEVEL,
     zoomControl: false,
-    scrollWheelZoom: false
+    scrollWheelZoom: false,
 });
 
 leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -51,62 +54,65 @@ sensorButton.addEventListener("click", () => {
   });
 });
 
-let points = 0;
+const coinPurse: Coin[] = [];
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No points yet...";
 
+const pitList = new Map<Cell, Coin[]>();
+
+function objToString(obj: Coin[]): string {
+    let coinList = "";
+    for (const obje of obj) {
+        coinList += `${obje.origin.i},${obje.origin.j},#${obje.serialNumber} \n`;
+    }
+    return coinList;
+}
+
 function makePit(i: number, j: number) {
-    const bounds = leaflet.latLngBounds([
-        [MERRILL_CLASSROOM.lat + i * TILE_DEGREES,
-        MERRILL_CLASSROOM.lng + j * TILE_DEGREES],
-        [MERRILL_CLASSROOM.lat + (i + 1) * TILE_DEGREES,
-        MERRILL_CLASSROOM.lng + (j + 1) * TILE_DEGREES],
-    ]);
-
-    const pit = leaflet.rectangle(bounds) as leaflet.Layer;
-
+    const currCell: Cell = { i: i, j: j };
+    const pitCoinList: Coin[] = [];
+    const pit = leaflet.rectangle(gameBoard.getCellBounds(currCell)) as leaflet.Layer;
+    for (let ii = 0; ii < Math.floor(luck([i, j, "initialValue"].toString()) * 10); ii++){
+        const nCoin: Coin = { origin: currCell, serialNumber: ii };
+        pitCoinList.push(nCoin);
+    }
 
 
     pit.bindPopup(() => {
-        let value = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
         const container = document.createElement("div");
         container.innerHTML = `
-                <div>There is a pit here at "${i},${j}". It has this many coins: <span id="value">${value}</span>.</div>
+                <div>There is a pit here at "${i},${j}". It has this many coins: <span id="value">${pitCoinList.length}${objToString(pitCoinList)}</span>.</div>
                 <button id="poke">Collect Coin</button><button id="unpoke">Deposit Coin</button>`;
         const poke = container.querySelector<HTMLButtonElement>("#poke")!;
+        
+
         poke.addEventListener("click", () => {
-            if (value > 0) {
-                value--;
-                points++;
+            if (pitCoinList.length > 0) {
+                const poppedCoin = pitCoinList.pop();
+                coinPurse.push(poppedCoin!);
+                console.log(poppedCoin);
             }
-            container.querySelector<HTMLSpanElement>("#value")!.innerHTML = value.toString();
-            statusPanel.innerHTML = `${points} coins collected!`;
+            container.querySelector<HTMLSpanElement>("#value")!.innerHTML = objToString(pitCoinList);
+            statusPanel.innerHTML = `${objToString(coinPurse)} coins collected!`;
         });
         const unpoke = container.querySelector<HTMLButtonElement>("#unpoke")!;
         unpoke.addEventListener("click", () => {
-            if (points > 0) {
-                value++;
-                points--;
+            if (coinPurse.length > 0) {
+                const pushedCoin = coinPurse.pop();
+                console.log(pushedCoin);
+                pitCoinList.push(pushedCoin!);
             }
-            container.querySelector<HTMLSpanElement>("#value")!.innerHTML = value.toString();
-            statusPanel.innerHTML = `${points} coins collected!`;
+            container.querySelector<HTMLSpanElement>("#value")!.innerHTML = objToString(pitCoinList);
+            statusPanel.innerHTML = `${objToString(coinPurse)} coins collected!`;
         });
         return container;
     });
+    pitList.set(currCell,pitCoinList);
     pit.addTo(map);
 }
 
-for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
-    for (let j = - NEIGHBORHOOD_SIZE; j < NEIGHBORHOOD_SIZE; j++) {
-        if (luck([i, j].toString()) < PIT_SPAWN_PROBABILITY) {
-            makePit(i, j);
-        }
+for (const { i, j } of gameBoard.getCellsNearPoint(playerMarker.getLatLng())) {
+    if (luck([i, j].toString()) < PIT_SPAWN_PROBABILITY) {
+        makePit(i, j);
     }
 }
-//add a tooltip so when you click on the player, the player's latitude longitude is displayed
-//each pit = 1 cell
-//"nearby cells" are cells within an 8 cell radius of the player
-//10 percent of grid cells "nearby" the player will be pits
-//player is stationary for now
-//pick up coins AND deposit, right now theres on'y a pickup function
-//make sure you can't poke pits beyond 0, or deposit beyond 0
