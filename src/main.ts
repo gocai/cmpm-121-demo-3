@@ -154,7 +154,7 @@ function makePit(cell: Cell) {
     const pit = leaflet.rectangle(gameBoard.getCellBounds(cell));
     const geocache = new Geocache(cell);
     if (UniqueCell.at(cell.i, cell.j)) {
-        knownList.set(cell,[cell.i,cell.j].toString());
+        knownList.set(cell,objToString(geocache.coins));
     }
     console.log(knownList);
     /*for (let ii = 0; ii < Math.floor(luck([i, j, "initialValue"].toString()) * 10); ii++){
