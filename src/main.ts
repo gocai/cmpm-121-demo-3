@@ -154,7 +154,6 @@ function makePit(cell: Cell) {
         pitCoinList.push(nCoin);
     }*/
     if (cacheList.has(cell)) {
-        //console.log(cacheList.get(cell));
         geocache.fromMomento(cacheList.get(cell)!);
     }
     tempCaches.push(pit);
@@ -162,7 +161,7 @@ function makePit(cell: Cell) {
     pit.bindPopup(() => {
         const container = document.createElement("div");
         container.innerHTML = `
-                <div>There is a pit here at "${cell.i},${cell.j}". It has this many coins: <span id="value">${pitCoinList.length}${objToString(pitCoinList)}</span>.</div>
+                <div>There is a pit here at "${cell.i},${cell.j}". It has these coins: <span id="value">${objToString(pitCoinList)}</span>.</div>
                 <button id="poke">Collect Coin</button><button id="unpoke">Deposit Coin</button>`;
         const poke = container.querySelector<HTMLButtonElement>("#poke")!;
 
