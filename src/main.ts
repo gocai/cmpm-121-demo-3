@@ -6,10 +6,13 @@ import "./leafletWorkaround";
 import { Board } from "./board.ts";
 import { Cell } from "./board.ts";
 
-interface Coin{
+/*interface Coin{
     origin: Cell;
     serialNumber: number;
-}
+}*/
+class Coin {
+    constructor(readonly origin: Cell, readonly serialNumber: number) {}
+  }
 
 const MERRILL_CLASSROOM = leaflet.latLng({
     lat: 36.9995,
@@ -40,7 +43,7 @@ class Geocache implements Momento<string>{
     fromMomento(momento: string) {
         const cacheData = JSON.parse(momento) as Coin[];
         this.coins = cacheData;
-        console.log(this.coins);
+        //console.log(this.coins);
     }
     toMomento() {
         //console.log(JSON.stringify(this.coins));
@@ -135,7 +138,8 @@ const coinPurse: Coin[] = [];
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No points yet...";
 
-const cacheList = new Map<Cell,string>();
+const cacheList = new Map<Cell, string>();
+const knownList = new Map<Cell,string>();
 let tempCaches: leaflet.Rectangle[] = [];
 
 function objToString(obj: Coin[]): string {
@@ -149,6 +153,10 @@ function objToString(obj: Coin[]): string {
 function makePit(cell: Cell) {
     const pit = leaflet.rectangle(gameBoard.getCellBounds(cell));
     const geocache = new Geocache(cell);
+    if (UniqueCell.at(cell.i, cell.j)) {
+        knownList.set(cell,[cell.i,cell.j].toString());
+    }
+    console.log(knownList);
     /*for (let ii = 0; ii < Math.floor(luck([i, j, "initialValue"].toString()) * 10); ii++){
         const nCoin: Coin = { origin: currCell, serialNumber: ii };
         pitCoinList.push(nCoin);
@@ -161,27 +169,27 @@ function makePit(cell: Cell) {
     pit.bindPopup(() => {
         const container = document.createElement("div");
         container.innerHTML = `
-                <div>There is a pit here at "${cell.i},${cell.j}". It has these coins: <span id="value">${objToString(pitCoinList)}</span>.</div>
+                <div>There is a pit here at "${cell.i},${cell.j}". It has these coins: <span id="value">${objToString(geocache.coins)}</span>.</div>
                 <button id="poke">Collect Coin</button><button id="unpoke">Deposit Coin</button>`;
         const poke = container.querySelector<HTMLButtonElement>("#poke")!;
 
         poke.addEventListener("click", () => {
             if (pitCoinList.length > 0) {
-                const poppedCoin = pitCoinList.pop();
+                const poppedCoin = geocache.coins.pop();
                 coinPurse.push(poppedCoin!);
-                console.log(poppedCoin);
+                //console.log(poppedCoin);
             }
-            container.querySelector<HTMLSpanElement>("#value")!.innerHTML = objToString(pitCoinList);
+            container.querySelector<HTMLSpanElement>("#value")!.innerHTML = objToString(geocache.coins);
             statusPanel.innerHTML = `${objToString(coinPurse)} coins collected!`;
         });
         const unpoke = container.querySelector<HTMLButtonElement>("#unpoke")!;
         unpoke.addEventListener("click", () => {
             if (coinPurse.length > 0) {
                 const pushedCoin = coinPurse.pop();
-                console.log(pushedCoin);
-                pitCoinList.push(pushedCoin!);
+                //console.log(pushedCoin);
+                geocache.coins.push(pushedCoin!);
             }
-            container.querySelector<HTMLSpanElement>("#value")!.innerHTML = objToString(pitCoinList);
+            container.querySelector<HTMLSpanElement>("#value")!.innerHTML = objToString(geocache.coins);
             statusPanel.innerHTML = `${objToString(coinPurse)} coins collected!`;
         });
         return container;
@@ -199,5 +207,18 @@ function spawnPits() {
         }
     });
 }
+
+class UniqueCell {
+    private static knownCells = new Map<string, UniqueCell>;
+    static at(i: number, j: number): UniqueCell {
+      const key = [i,j].toString();
+      if(!UniqueCell.knownCells.has(key)) {
+        UniqueCell.knownCells.set(key, new UniqueCell(i,j));
+      }
+      return UniqueCell.knownCells.get(key)!;
+    }
+     constructor(readonly i: number, readonly j: number) {}
+  }
+
 
 spawnPits();
