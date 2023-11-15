@@ -15,28 +15,39 @@ const MERRILL_CLASSROOM = leaflet.latLng({
     lat: 36.9995,
     lng: - 122.0533
 });
+const NULL_ISLAND = {
+    lat: 0,
+    lng: 0,
+  };
+interface Momento<T>{
+    toMomento(): T;
+    fromMomento(momento: T): void;
+}
 
-class Geocache{
-    board: Board;
+class Geocache implements Momento<string>{
     cell: Cell;
     coins: Coin[];
-    constructor(board: Board, cell: Cell,) {
-        this.board = board;
+    constructor(cell: Cell, ) {
+        
         this.cell = cell;
         this.coins = [];
         for (let ij = 0; ij < Math.floor(luck([cell.i, cell.j, "initialValue"].toString()) * 10); ij++){
             const pushCoin: Coin = { origin: cell, serialNumber: ij };
             this.coins.push(pushCoin);
         }
-        this.board = board;
     }
+
     fromMomento(momento: string) {
-        const coinPouch = JSON.parse(momento) as Coin[];
-        
-        this.coins = coinPouch;
+        const cacheData = JSON.parse(momento) as Coin[];
+        this.coins = cacheData;
+        console.log(this.coins);
     }
     toMomento() {
+        //console.log(JSON.stringify(this.coins));
         return JSON.stringify(this.coins);
+    }
+    rewriteCoins(array: Coin[]) {
+        this.coins = array;
     }
 }
 
@@ -51,7 +62,7 @@ const gameBoard = new Board(TILE_DEGREES, NEIGHBORHOOD_SIZE);
 const mapContainer = document.querySelector<HTMLElement>("#map")!;
 
 const map = leaflet.map(mapContainer, {
-    center: MERRILL_CLASSROOM,
+    center: NULL_ISLAND,
     zoom: GAMEPLAY_ZOOM_LEVEL,
     minZoom: GAMEPLAY_ZOOM_LEVEL,
     maxZoom: GAMEPLAY_ZOOM_LEVEL,
@@ -64,7 +75,7 @@ leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a>"
 }).addTo(map);
 
-const playerMarker = leaflet.marker(MERRILL_CLASSROOM);
+const playerMarker = leaflet.marker(NULL_ISLAND);
 playerMarker.bindTooltip(`That's you! Your location is ${MERRILL_CLASSROOM.lat},${MERRILL_CLASSROOM.lng}`);
 playerMarker.addTo(map);
 
@@ -137,19 +148,19 @@ function objToString(obj: Coin[]): string {
 
 function makePit(cell: Cell) {
     const pit = leaflet.rectangle(gameBoard.getCellBounds(cell));
-    const geocache = new Geocache(gameBoard, cell);
+    const geocache = new Geocache(cell);
     /*for (let ii = 0; ii < Math.floor(luck([i, j, "initialValue"].toString()) * 10); ii++){
         const nCoin: Coin = { origin: currCell, serialNumber: ii };
         pitCoinList.push(nCoin);
     }*/
     if (cacheList.has(cell)) {
-        console.log("dupe detected");
+        //console.log(cacheList.get(cell));
         geocache.fromMomento(cacheList.get(cell)!);
     }
     tempCaches.push(pit);
+    const pitCoinList = geocache.coins;
     pit.bindPopup(() => {
         const container = document.createElement("div");
-        const pitCoinList = geocache.coins;
         container.innerHTML = `
                 <div>There is a pit here at "${cell.i},${cell.j}". It has this many coins: <span id="value">${pitCoinList.length}${objToString(pitCoinList)}</span>.</div>
                 <button id="poke">Collect Coin</button><button id="unpoke">Deposit Coin</button>`;
@@ -176,8 +187,8 @@ function makePit(cell: Cell) {
         });
         return container;
     });
-    
-    cacheList.set(cell,geocache.toMomento());
+    cacheList.set(cell, geocache.toMomento());
+    //console.log(geocache.toMomento());
     pit.addTo(map);
 }
 

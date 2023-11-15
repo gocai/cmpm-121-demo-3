@@ -18,7 +18,7 @@ export class Board {
         this.knownCells = new Map();
     }
 
-    private getCanonicalCell(cell: Cell): Cell {
+    getCanonicalCell(cell: Cell): Cell {
         const { i, j } = cell;
         const key = [i, j].toString();
         if (!this.knownCells.get(key)) {
