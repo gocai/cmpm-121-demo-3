@@ -11,11 +11,35 @@ interface Coin{
     serialNumber: number;
 }
 
-
 const MERRILL_CLASSROOM = leaflet.latLng({
     lat: 36.9995,
     lng: - 122.0533
 });
+
+class Geocache{
+    board: Board;
+    cell: Cell;
+    coins: Coin[];
+    constructor(board: Board, cell: Cell,) {
+        this.board = board;
+        this.cell = cell;
+        this.coins = [];
+        for (let ij = 0; ij < Math.floor(luck([cell.i, cell.j, "initialValue"].toString()) * 10); ij++){
+            const pushCoin: Coin = { origin: cell, serialNumber: ij };
+            this.coins.push(pushCoin);
+        }
+        this.board = board;
+    }
+    fromMomento(momento: string) {
+        const coinPouch = JSON.parse(momento) as Coin[];
+        
+        this.coins = coinPouch;
+    }
+    toMomento() {
+        return JSON.stringify(this.coins);
+    }
+}
+
 
 const GAMEPLAY_ZOOM_LEVEL = 18;
 const TILE_DEGREES = 1e-4;
@@ -45,20 +69,63 @@ playerMarker.bindTooltip(`That's you! Your location is ${MERRILL_CLASSROOM.lat},
 playerMarker.addTo(map);
 
 const sensorButton = document.querySelector("#sensor")!;
-sensorButton.addEventListener("click", () => {
-  navigator.geolocation.watchPosition((position) => {
-    playerMarker.setLatLng(
-      leaflet.latLng(position.coords.latitude, position.coords.longitude)
-    );
+const leftButton = document.querySelector("#west");
+const rightButton = document.querySelector("#east");
+const upButton = document.querySelector("#north");
+const downButton = document.querySelector("#south");
+const resetButton = document.querySelector("#reset");
+  
+sensorButton.addEventListener("click", buttonz);
+leftButton?.addEventListener("click", buttonz);
+rightButton?.addEventListener("click", buttonz);
+upButton?.addEventListener("click", buttonz);
+downButton?.addEventListener("click", buttonz);
+resetButton?.addEventListener("click", buttonz);
+
+function buttonz(event: Event) {
+    const target = event.target as HTMLElement;
+    const playerLatLng = playerMarker.getLatLng();
+    switch (target.id) {
+        case "west":
+            playerLatLng.lng -= TILE_DEGREES;
+            playerMarker.setLatLng(playerLatLng);
+            break;
+        case "east":
+            playerLatLng.lng += TILE_DEGREES;
+            playerMarker.setLatLng(playerLatLng);
+            break;
+        case "north":
+            playerLatLng.lat += TILE_DEGREES;
+            playerMarker.setLatLng(playerLatLng);
+            break;
+        case "south":
+            playerLatLng.lat -= TILE_DEGREES;
+            playerMarker.setLatLng(playerLatLng);
+            break;
+        case "sensor":
+            navigator.geolocation.watchPosition((position) => {
+                playerMarker.setLatLng(
+                    leaflet.latLng(position.coords.latitude, position.coords.longitude)
+                );
+                map.setView(playerMarker.getLatLng());
+            });
+            break;
+        case "reset":
+            break;
+    }
     map.setView(playerMarker.getLatLng());
-  });
-});
+    tempCaches.forEach((pit) => pit.remove());
+    tempCaches = [];
+    spawnPits();
+}
+
 
 const coinPurse: Coin[] = [];
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No points yet...";
 
-const pitList = new Map<Cell, Coin[]>();
+const cacheList = new Map<Cell,string>();
+let tempCaches: leaflet.Rectangle[] = [];
 
 function objToString(obj: Coin[]): string {
     let coinList = "";
@@ -68,23 +135,25 @@ function objToString(obj: Coin[]): string {
     return coinList;
 }
 
-function makePit(i: number, j: number) {
-    const currCell: Cell = { i: i, j: j };
-    const pitCoinList: Coin[] = [];
-    const pit = leaflet.rectangle(gameBoard.getCellBounds(currCell)) as leaflet.Layer;
-    for (let ii = 0; ii < Math.floor(luck([i, j, "initialValue"].toString()) * 10); ii++){
+function makePit(cell: Cell) {
+    const pit = leaflet.rectangle(gameBoard.getCellBounds(cell));
+    const geocache = new Geocache(gameBoard, cell);
+    /*for (let ii = 0; ii < Math.floor(luck([i, j, "initialValue"].toString()) * 10); ii++){
         const nCoin: Coin = { origin: currCell, serialNumber: ii };
         pitCoinList.push(nCoin);
+    }*/
+    if (cacheList.has(cell)) {
+        console.log("dupe detected");
+        geocache.fromMomento(cacheList.get(cell)!);
     }
-
-
+    tempCaches.push(pit);
     pit.bindPopup(() => {
         const container = document.createElement("div");
+        const pitCoinList = geocache.coins;
         container.innerHTML = `
-                <div>There is a pit here at "${i},${j}". It has this many coins: <span id="value">${pitCoinList.length}${objToString(pitCoinList)}</span>.</div>
+                <div>There is a pit here at "${cell.i},${cell.j}". It has this many coins: <span id="value">${pitCoinList.length}${objToString(pitCoinList)}</span>.</div>
                 <button id="poke">Collect Coin</button><button id="unpoke">Deposit Coin</button>`;
         const poke = container.querySelector<HTMLButtonElement>("#poke")!;
-        
 
         poke.addEventListener("click", () => {
             if (pitCoinList.length > 0) {
@@ -107,12 +176,18 @@ function makePit(i: number, j: number) {
         });
         return container;
     });
-    pitList.set(currCell,pitCoinList);
+    
+    cacheList.set(cell,geocache.toMomento());
     pit.addTo(map);
 }
 
-for (const { i, j } of gameBoard.getCellsNearPoint(playerMarker.getLatLng())) {
-    if (luck([i, j].toString()) < PIT_SPAWN_PROBABILITY) {
-        makePit(i, j);
-    }
+function spawnPits() {
+    const nearby = gameBoard.getCellsNearPoint(playerMarker.getLatLng());
+    nearby.forEach((cell) => {
+        if (luck([cell.i, cell.j].toString()) < PIT_SPAWN_PROBABILITY) {
+            makePit(cell);
+        }
+    });
 }
+
+spawnPits();
