@@ -198,7 +198,7 @@ function spawnPits() {
     });
 }
 
-class UniqueCell {
+/*class UniqueCell {
     private static knownCells = new Map<string, UniqueCell>;
     static at(i: number, j: number): UniqueCell {
       const key = [i,j].toString();
@@ -208,7 +208,7 @@ class UniqueCell {
       return UniqueCell.knownCells.get(key)!;
     }
      constructor(readonly i: number, readonly j: number) {}
-  }
+  }*/
 
 
 spawnPits();
