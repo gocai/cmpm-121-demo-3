@@ -41,16 +41,11 @@ class Geocache implements Momento<string>{
     }
 
     fromMomento(momento: string) {
-        const cacheData = JSON.parse(momento) as Coin[];
-        this.coins = cacheData;
-        //console.log(this.coins);
+        this.coins = JSON.parse(momento) as Coin[];
     }
     toMomento() {
-        //console.log(JSON.stringify(this.coins));
+        
         return JSON.stringify(this.coins);
-    }
-    rewriteCoins(array: Coin[]) {
-        this.coins = array;
     }
 }
 
@@ -128,8 +123,11 @@ function buttonz(event: Event) {
             break;
     }
     map.setView(playerMarker.getLatLng());
-    tempCaches.forEach((pit) => pit.remove());
-    tempCaches = [];
+    /*tempCaches.forEach((pit) => pit.remove());
+    tempCaches = [];*/
+    for (const geocache of tempCaches) {
+        geocache.remove();
+    }
     spawnPits();
 }
 
@@ -138,9 +136,9 @@ const coinPurse: Coin[] = [];
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No points yet...";
 
-const cacheList = new Map<Cell, string>();
+
 const knownList = new Map<Cell,string>();
-let tempCaches: leaflet.Rectangle[] = [];
+const tempCaches: leaflet.Rectangle[] = [];
 
 function objToString(obj: Coin[]): string {
     let coinList = "";
@@ -151,20 +149,14 @@ function objToString(obj: Coin[]): string {
 }
 
 function makePit(cell: Cell) {
+    //const existingCell = gameBoard.getCellForPoint(leaflet.latLng({ lat: cell.i, lng: cell.j }));
     const pit = leaflet.rectangle(gameBoard.getCellBounds(cell));
     const geocache = new Geocache(cell);
-    if (UniqueCell.at(cell.i, cell.j)) {
-        knownList.set(cell,objToString(geocache.coins));
+    if (knownList.has(cell)) {
+        geocache.fromMomento(knownList.get(cell)!);
+    } else{
+        knownList.set(cell,geocache.toMomento());
     }
-    console.log(knownList);
-    /*for (let ii = 0; ii < Math.floor(luck([i, j, "initialValue"].toString()) * 10); ii++){
-        const nCoin: Coin = { origin: currCell, serialNumber: ii };
-        pitCoinList.push(nCoin);
-    }*/
-    if (cacheList.has(cell)) {
-        geocache.fromMomento(cacheList.get(cell)!);
-    }
-    tempCaches.push(pit);
     const pitCoinList = geocache.coins;
     pit.bindPopup(() => {
         const container = document.createElement("div");
@@ -175,9 +167,9 @@ function makePit(cell: Cell) {
 
         poke.addEventListener("click", () => {
             if (pitCoinList.length > 0) {
-                const poppedCoin = geocache.coins.pop();
-                coinPurse.push(poppedCoin!);
-                //console.log(poppedCoin);
+                //const poppedCoin = geocache.coins.pop();
+                coinPurse.push(geocache.coins.pop()!);
+                knownList.set(cell, geocache.toMomento());
             }
             container.querySelector<HTMLSpanElement>("#value")!.innerHTML = objToString(geocache.coins);
             statusPanel.innerHTML = `${objToString(coinPurse)} coins collected!`;
@@ -185,17 +177,15 @@ function makePit(cell: Cell) {
         const unpoke = container.querySelector<HTMLButtonElement>("#unpoke")!;
         unpoke.addEventListener("click", () => {
             if (coinPurse.length > 0) {
-                const pushedCoin = coinPurse.pop();
-                //console.log(pushedCoin);
-                geocache.coins.push(pushedCoin!);
+                geocache.coins.push(coinPurse.pop()!);
+                knownList.set(cell, geocache.toMomento());
             }
             container.querySelector<HTMLSpanElement>("#value")!.innerHTML = objToString(geocache.coins);
             statusPanel.innerHTML = `${objToString(coinPurse)} coins collected!`;
         });
         return container;
     });
-    cacheList.set(cell, geocache.toMomento());
-    //console.log(geocache.toMomento());
+    tempCaches.push(pit);
     pit.addTo(map);
 }
 
