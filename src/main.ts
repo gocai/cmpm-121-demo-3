@@ -44,7 +44,6 @@ class Geocache implements Momento<string>{
         this.coins = JSON.parse(momento) as Coin[];
     }
     toMomento() {
-        
         return JSON.stringify(this.coins);
     }
 }
@@ -59,6 +58,7 @@ const gameBoard = new Board(TILE_DEGREES, NEIGHBORHOOD_SIZE);
 
 const mapContainer = document.querySelector<HTMLElement>("#map")!;
 
+
 const map = leaflet.map(mapContainer, {
     center: NULL_ISLAND,
     zoom: GAMEPLAY_ZOOM_LEVEL,
@@ -67,6 +67,12 @@ const map = leaflet.map(mapContainer, {
     zoomControl: false,
     scrollWheelZoom: false,
 });
+
+let movementHistory: leaflet.LatLng[] = [];
+let polylineArray: leaflet.Polyline[] = [];
+let polylineHistory = leaflet.polyline(movementHistory, { color: "green" });
+polylineArray.push(polylineHistory);
+
 
 leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
@@ -120,18 +126,27 @@ function buttonz(event: Event) {
             });
             break;
         case "reset":
+            movementHistory = [];
+            for (const line of polylineArray) {
+                line.remove();
+            }
+            polylineArray = [];
             break;
     }
     map.setView(playerMarker.getLatLng());
-    /*tempCaches.forEach((pit) => pit.remove());
-    tempCaches = [];*/
     for (const geocache of tempCaches) {
         geocache.remove();
     }
+    addPointtoPolyline(playerMarker.getLatLng().lat, playerMarker.getLatLng().lng);
+    polylineHistory = leaflet.polyline(movementHistory, { color: "green" }).addTo(map);
+    polylineArray.push(polylineHistory);
     spawnPits();
 }
 
-
+function addPointtoPolyline(lat: number, lng: number) {
+    const newLatLng = leaflet.latLng(lat, lng);
+    movementHistory.push(newLatLng);
+}
 const coinPurse: Coin[] = [];
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No points yet...";
