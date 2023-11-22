@@ -149,7 +149,7 @@ function buttonz(event: Event) {
     spawnPits();
 }
 
-const coinPurse: Coin[] = [];
+let coinPurse: Coin[] = [];
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No points yet...";
 
@@ -164,6 +164,7 @@ function objToString(obj: Coin[]): string {
     }
     return coinList;
 }
+
 
 function makePit(cell: Cell) {
     //const existingCell = gameBoard.getCellForPoint(leaflet.latLng({ lat: cell.i, lng: cell.j }));
@@ -187,23 +188,40 @@ function makePit(cell: Cell) {
                 //const poppedCoin = geocache.coins.pop();
                 coinPurse.push(geocache.coins.pop()!);
                 knownList.set(cell, geocache.toMomento());
+                saveState();
             }
             container.querySelector<HTMLSpanElement>("#value")!.innerHTML = objToString(geocache.coins);
-            statusPanel.innerHTML = `${objToString(coinPurse)} coins collected!`;
+            statusPanel.innerHTML = `Coin Inventory: ${objToString(coinPurse)} \n`;
         });
         const unpoke = container.querySelector<HTMLButtonElement>("#unpoke")!;
         unpoke.addEventListener("click", () => {
             if (coinPurse.length > 0) {
                 geocache.coins.push(coinPurse.pop()!);
                 knownList.set(cell, geocache.toMomento());
+                saveState();
             }
             container.querySelector<HTMLSpanElement>("#value")!.innerHTML = objToString(geocache.coins);
-            statusPanel.innerHTML = `${objToString(coinPurse)} coins collected!`;
+            statusPanel.innerHTML = `Coin Inventory: ${objToString(coinPurse)} \n`;
         });
         return container;
     });
     tempCaches.push(pit);
     pit.addTo(map);
+    if (localCoinPurse) {
+        console.log(JSON.parse(localCoinPurse));
+    }
+}
+
+const localCoinPurse = localStorage.getItem("coinPurse");
+
+function saveState() {
+    localStorage.setItem("coinPurse", JSON.stringify(coinPurse));
+}
+function loadState() {
+    if (localCoinPurse) {
+        coinPurse = JSON.parse(localCoinPurse) as Coin[];
+    } 
+    statusPanel.innerHTML = `Coin Inventory: ${objToString(coinPurse)} \n`;
 }
 
 function spawnPits() {
@@ -232,17 +250,7 @@ function clearCaches() {
 }
 
 
-/*class UniqueCell {
-    private static knownCells = new Map<string, UniqueCell>;
-    static at(i: number, j: number): UniqueCell {
-      const key = [i,j].toString();
-      if(!UniqueCell.knownCells.has(key)) {
-        UniqueCell.knownCells.set(key, new UniqueCell(i,j));
-      }
-      return UniqueCell.knownCells.get(key)!;
-    }
-     constructor(readonly i: number, readonly j: number) {}
-  }*/
 
 
 spawnPits();
+loadState();
