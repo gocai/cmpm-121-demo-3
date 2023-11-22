@@ -104,49 +104,51 @@ function buttonz(event: Event) {
         case "west":
             playerLatLng.lng -= TILE_DEGREES;
             playerMarker.setLatLng(playerLatLng);
+            addPointtoPolyline(playerMarker.getLatLng().lat, playerMarker.getLatLng().lng);
             break;
         case "east":
             playerLatLng.lng += TILE_DEGREES;
             playerMarker.setLatLng(playerLatLng);
+            addPointtoPolyline(playerMarker.getLatLng().lat, playerMarker.getLatLng().lng);
             break;
         case "north":
             playerLatLng.lat += TILE_DEGREES;
             playerMarker.setLatLng(playerLatLng);
+            addPointtoPolyline(playerMarker.getLatLng().lat, playerMarker.getLatLng().lng);
             break;
         case "south":
             playerLatLng.lat -= TILE_DEGREES;
             playerMarker.setLatLng(playerLatLng);
+            addPointtoPolyline(playerMarker.getLatLng().lat, playerMarker.getLatLng().lng);
             break;
         case "sensor":
             navigator.geolocation.watchPosition((position) => {
                 playerMarker.setLatLng(
                     leaflet.latLng(position.coords.latitude, position.coords.longitude)
-                );
-                map.setView(playerMarker.getLatLng());
+                ),
+                map.setView(playerMarker.getLatLng()),
+                { enableHighAccuracy: true },
+                addPointtoPolyline(playerMarker.getLatLng().lat, playerMarker.getLatLng().lng);
+                drawPolylines();
+                clearCaches();
+                spawnPits();
             });
             break;
         case "reset":
+            playerMarker.setLatLng(NULL_ISLAND);
             movementHistory = [];
             for (const line of polylineArray) {
                 line.remove();
             }
-            polylineArray = [];
+            polylineArray = []; 
             break;
     }
     map.setView(playerMarker.getLatLng());
-    for (const geocache of tempCaches) {
-        geocache.remove();
-    }
-    addPointtoPolyline(playerMarker.getLatLng().lat, playerMarker.getLatLng().lng);
-    polylineHistory = leaflet.polyline(movementHistory, { color: "green" }).addTo(map);
-    polylineArray.push(polylineHistory);
+    clearCaches();
+    drawPolylines();
     spawnPits();
 }
 
-function addPointtoPolyline(lat: number, lng: number) {
-    const newLatLng = leaflet.latLng(lat, lng);
-    movementHistory.push(newLatLng);
-}
 const coinPurse: Coin[] = [];
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No points yet...";
@@ -212,6 +214,23 @@ function spawnPits() {
         }
     });
 }
+
+function addPointtoPolyline(lat: number, lng: number) {
+    const newLatLng = leaflet.latLng(lat, lng);
+    movementHistory.push(newLatLng);
+}
+
+function drawPolylines() {
+    polylineHistory = leaflet.polyline(movementHistory, { color: "green" }).addTo(map);
+    polylineArray.push(polylineHistory);
+}
+
+function clearCaches() {
+    for (const geocache of tempCaches) {
+        geocache.remove();
+    }
+}
+
 
 /*class UniqueCell {
     private static knownCells = new Map<string, UniqueCell>;
