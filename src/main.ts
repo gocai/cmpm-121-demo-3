@@ -134,14 +134,26 @@ function buttonz(event: Event) {
                 spawnPits();
             });
             break;
-        case "reset":
-            playerMarker.setLatLng(NULL_ISLAND);
-            movementHistory = [];
-            for (const line of polylineArray) {
-                line.remove();
+        case "reset": {
+            const confirmReset = window.confirm(`Are you sure you want to reset?`);
+            if (confirmReset) {
+                playerMarker.setLatLng(NULL_ISLAND);
+                movementHistory = [];
+                for (const line of polylineArray) {
+                    line.remove();
+                }
+                knownList.clear();
+                polylineArray = [];
+                coinPurse = [];
+                clearCaches();
+                spawnPits();
+                saveState();
+                statusPanel.innerHTML = `Coin Inventory: ${objToString(coinPurse)} \n`;
+            }  else {
+                break;
             }
-            polylineArray = []; 
             break;
+        }
     }
     map.setView(playerMarker.getLatLng());
     clearCaches();
@@ -207,15 +219,13 @@ function makePit(cell: Cell) {
     });
     tempCaches.push(pit);
     pit.addTo(map);
-    if (localCoinPurse) {
-        console.log(JSON.parse(localCoinPurse));
-    }
 }
 
 const localCoinPurse = localStorage.getItem("coinPurse");
-
+//const localKnownList = localStorage.getItem("knownList");
 function saveState() {
     localStorage.setItem("coinPurse", JSON.stringify(coinPurse));
+    localStorage.setItem("knownList", JSON.stringify(knownList));
 }
 function loadState() {
     if (localCoinPurse) {
