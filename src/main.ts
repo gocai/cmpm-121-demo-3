@@ -145,9 +145,7 @@ function buttonz(event: Event) {
                 knownList.clear();
                 polylineArray = [];
                 coinPurse = [];
-                clearCaches();
-                spawnPits();
-                saveState();
+                saveCoinState();
                 statusPanel.innerHTML = `Coin Inventory: ${objToString(coinPurse)} \n`;
             }  else {
                 break;
@@ -168,6 +166,7 @@ statusPanel.innerHTML = "No points yet...";
 
 const knownList = new Map<Cell,string>();
 const tempCaches: leaflet.Rectangle[] = [];
+
 
 function objToString(obj: Coin[]): string {
     let coinList = "";
@@ -200,7 +199,8 @@ function makePit(cell: Cell) {
                 //const poppedCoin = geocache.coins.pop();
                 coinPurse.push(geocache.coins.pop()!);
                 knownList.set(cell, geocache.toMomento());
-                saveState();
+                saveCoinState();
+                savePits();
             }
             container.querySelector<HTMLSpanElement>("#value")!.innerHTML = objToString(geocache.coins);
             statusPanel.innerHTML = `Coin Inventory: ${objToString(coinPurse)} \n`;
@@ -210,7 +210,8 @@ function makePit(cell: Cell) {
             if (coinPurse.length > 0) {
                 geocache.coins.push(coinPurse.pop()!);
                 knownList.set(cell, geocache.toMomento());
-                saveState();
+                saveCoinState();
+                savePits();
             }
             container.querySelector<HTMLSpanElement>("#value")!.innerHTML = objToString(geocache.coins);
             statusPanel.innerHTML = `Coin Inventory: ${objToString(coinPurse)} \n`;
@@ -219,20 +220,49 @@ function makePit(cell: Cell) {
     });
     tempCaches.push(pit);
     pit.addTo(map);
+    savePits();
 }
 
 const localCoinPurse = localStorage.getItem("coinPurse");
-//const localKnownList = localStorage.getItem("knownList");
-function saveState() {
+const localKnownList = localStorage.getItem("knownList");
+const cachedString: string[] = [];
+let poopString: Coin[] = [];
+
+function saveCoinState() {
     localStorage.setItem("coinPurse", JSON.stringify(coinPurse));
-    localStorage.setItem("knownList", JSON.stringify(knownList));
 }
-function loadState() {
+
+function savePits() {
+    /*for (const entry of knownList.entries()) {
+        const fart = JSON.stringify(entry);
+        cachedString.push(fart);
+    }*/
+    // for (const keys of knownList.keys()) {
+    //     const stringKey = JSON.stringify(keys);
+    //     console.log(stringKey);
+    // }
+    for (const values of knownList.values()) {
+        const stringValue = JSON.stringify(values);
+        cachedString.push(stringValue);
+    }
+    localStorage.setItem("knownList", JSON.stringify(cachedString));
+    
+    
+}
+
+function loadCoinState() {
     if (localCoinPurse) {
         coinPurse = JSON.parse(localCoinPurse) as Coin[];
     } 
+    if (localKnownList) {
+        poopString = JSON.parse(localKnownList) as Coin[];
+    }
+    //console.log(JSON.parse(localKnownList!) as Map<Cell, string>);
+    console.log(poopString);
     statusPanel.innerHTML = `Coin Inventory: ${objToString(coinPurse)} \n`;
 }
+
+
 
 function spawnPits() {
     const nearby = gameBoard.getCellsNearPoint(playerMarker.getLatLng());
@@ -259,8 +289,5 @@ function clearCaches() {
     }
 }
 
-
-
-
 spawnPits();
-loadState();
+loadCoinState();
