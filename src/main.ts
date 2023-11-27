@@ -164,7 +164,7 @@ const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No points yet...";
 
 
-const knownList = new Map<Cell,string>();
+const knownList = new Map<Cell, string>();
 const tempCaches: leaflet.Rectangle[] = [];
 
 
@@ -181,11 +181,12 @@ function makePit(cell: Cell) {
     //const existingCell = gameBoard.getCellForPoint(leaflet.latLng({ lat: cell.i, lng: cell.j }));
     const pit = leaflet.rectangle(gameBoard.getCellBounds(cell));
     const geocache = new Geocache(cell);
-    if (knownList.has(cell)) {
-        geocache.fromMomento(knownList.get(cell)!);
-    } else{
-        knownList.set(cell,geocache.toMomento());
-    }
+        if (knownList.has(cell)) {
+            geocache.fromMomento(knownList.get(cell)!);
+        } else {
+            knownList.set(cell, geocache.toMomento());
+        }
+    
     const pitCoinList = geocache.coins;
     pit.bindPopup(() => {
         const container = document.createElement("div");
@@ -225,29 +226,17 @@ function makePit(cell: Cell) {
 
 const localCoinPurse = localStorage.getItem("coinPurse");
 const localKnownList = localStorage.getItem("knownList");
-const cachedString: string[] = [];
-let poopString: Coin[] = [];
+//let cachedString: string[] = [];
+let poopString = new Map<Cell, string>();
+
+
 
 function saveCoinState() {
     localStorage.setItem("coinPurse", JSON.stringify(coinPurse));
 }
 
 function savePits() {
-    /*for (const entry of knownList.entries()) {
-        const fart = JSON.stringify(entry);
-        cachedString.push(fart);
-    }*/
-    // for (const keys of knownList.keys()) {
-    //     const stringKey = JSON.stringify(keys);
-    //     console.log(stringKey);
-    // }
-    for (const values of knownList.values()) {
-        const stringValue = JSON.stringify(values);
-        cachedString.push(stringValue);
-    }
-    localStorage.setItem("knownList", JSON.stringify(cachedString));
-    
-    
+    localStorage.setItem("knownList", serializeMap(knownList));
 }
 
 function loadCoinState() {
@@ -255,9 +244,11 @@ function loadCoinState() {
         coinPurse = JSON.parse(localCoinPurse) as Coin[];
     } 
     if (localKnownList) {
-        poopString = JSON.parse(localKnownList) as Coin[];
+        // const boof = localStorage.getItem("knownList");
+        // poopString = deserializeMap(boof!);
+        // console.log(poopString);
+        poopString = deserializeMap(localKnownList);
     }
-    //console.log(JSON.parse(localKnownList!) as Map<Cell, string>);
     console.log(poopString);
     statusPanel.innerHTML = `Coin Inventory: ${objToString(coinPurse)} \n`;
 }
@@ -289,5 +280,18 @@ function clearCaches() {
     }
 }
 
-spawnPits();
+function serializeMap(map: Map<Cell, string>): string {
+    const serializedEntries: [Cell, string][] = [];
+
+    map.forEach((value, key) => {
+        serializedEntries.push([key, value]);
+    });
+
+    return JSON.stringify(serializedEntries);
+}
+
+function deserializeMap(serializedMap: string): Map<Cell, string> {
+    return new Map(JSON.parse(serializedMap) as [Cell, string][]);
+}
 loadCoinState();
+spawnPits();
