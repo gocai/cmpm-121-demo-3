@@ -225,9 +225,9 @@ function makePit(cell: Cell) {
 }
 
 const localCoinPurse = localStorage.getItem("coinPurse");
-const localKnownList = localStorage.getItem("knownList");
+//const localKnownList = localStorage.getItem("knownList");
 //let cachedString: string[] = [];
-let poopString = new Map<Cell, string>();
+//let poopString = new Map<Cell, string>();
 
 
 
@@ -243,13 +243,13 @@ function loadCoinState() {
     if (localCoinPurse) {
         coinPurse = JSON.parse(localCoinPurse) as Coin[];
     } 
-    if (localKnownList) {
-        // const boof = localStorage.getItem("knownList");
-        // poopString = deserializeMap(boof!);
-        // console.log(poopString);
-        poopString = deserializeMap(localKnownList);
-    }
-    console.log(poopString);
+    // if (localKnownList) {
+    //     // const boof = localStorage.getItem("knownList");
+    //     // poopString = deserializeMap(boof!);
+    //     // console.log(poopString);
+    //     poopString = deserializeMap(localKnownList);
+    // }
+    // console.log(poopString);
     statusPanel.innerHTML = `Coin Inventory: ${objToString(coinPurse)} \n`;
 }
 
