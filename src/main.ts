@@ -290,8 +290,8 @@ function serializeMap(map: Map<Cell, string>): string {
     return JSON.stringify(serializedEntries);
 }
 
-function deserializeMap(serializedMap: string): Map<Cell, string> {
-    return new Map(JSON.parse(serializedMap) as [Cell, string][]);
-}
+// function deserializeMap(serializedMap: string): Map<Cell, string> {
+//     return new Map(JSON.parse(serializedMap) as [Cell, string][]);
+// }
 loadCoinState();
 spawnPits();
